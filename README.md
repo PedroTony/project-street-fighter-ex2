@@ -26,9 +26,9 @@
 - RM87273 - NAOMI DOI
 - RM87321 - PEDRO TONIOLO
 
-## Livrarias usadas
+## Bibliotecas usadas
 
-- Opencv-Python (opencv2);
+- Opencv-Python (opencv4);
 - Matplotlib;
 - Numpy;
 - Mediapipe.
