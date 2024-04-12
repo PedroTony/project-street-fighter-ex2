@@ -2,7 +2,7 @@
 ## AI Engineering, Cognitive and Semantics Computing & IoT - Checkpoint 2
 
 
-**Ideia do projeto** :
+**Ideia do projeto**:
 - Jogo de luta em tempo real, conectado com o Street Fighter onde será identificado os movimentos do jogador. Ao socar causará dano, tendo também a defesa e ataque especial.
 - No final do projeto será possível jogar um jogador contra a máquina e dois jogadores ao mesmo tempo.
 
@@ -26,9 +26,9 @@
 - RM87273 - NAOMI DOI
 - RM87321 - PEDRO TONIOLO
 
-## Livrarias usadas
+## Bibliotecas usadas
 
-- Opencv-Python (opencv2);
+- Opencv-Python (opencv4);
 - Matplotlib;
 - Numpy;
 - Mediapipe.
