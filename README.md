@@ -31,16 +31,16 @@
 - Opencv-Python (opencv4);
 - Matplotlib;
 - Numpy;
-- Mediapipe.
+- Mediapipe;
+- Pyinput.
 
 # Como executar
-Importe as libraries:
-```bash
-pip install opencv-python
-pip install numpy
-pip install matplotlib
-pip install mediapipe
+Para ser executado com uma venv Pyton 3.8.x
+Rode o comando:
+```
+pip install -r ./requirements.txt
 ```
 
-Rode o ```main.py``` com o Street Fighter EX2 aberto, para parar a execução do programa segure **CTRL + X**.
+
+Rode o ```main.py``` com o Street Fighter EX2 aberto, para parar a execução do programa pressione o botão ```-``` (menos).
 
