@@ -4,34 +4,39 @@ import threading as thr
 import mediapipe as mp
 from matplotlib import pyplot as plt
 from classes.Player import Player
+import ctypes
+
+u32 = ctypes.windll.user32
+screen_size = u32.GetSystemMetrics(0), u32.GetSystemMetrics(1)
+
+print(screen_size)
 
 player1 = Player(True, False)
 player2 = Player(False, True)
 
-
 mp_drawing = mp.solutions.drawing_utils
 mp_holistic = mp.solutions.holistic
-
 
 def detect_punch(hand_landmarks):
 
     if hand_landmarks:
-
         thumb_tip = hand_landmarks.landmark[mp_holistic.HandLandmark.THUMB_TIP]
         index_finger_tip = hand_landmarks.landmark[mp_holistic.HandLandmark.INDEX_FINGER_TIP]
-
         distance = abs(thumb_tip.x - index_finger_tip.x) + abs(thumb_tip.y - index_finger_tip.y)
 
         if distance > 0.1:
             return True
     return False
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, screen_size[0])
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, screen_size[1])
 
 with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
     
     while cap.isOpened():
         ret, frame = cap.read()
+        frame = cv2.resize(frame, (screen_size[0] - 40, screen_size[1] - 120))
         
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = holistic.process(image)
@@ -64,7 +69,7 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
         if detect_punch(results.right_hand_landmarks):
             print("Soco detectado")
 
-        cv2.imshow('Raw Webcam Feed', image)
+        cv2.imshow('Projeto Street Fighter Ex2', image)
 
         if cv2.waitKey(10) & 0xFF == ord('-'):
             break
