@@ -1,9 +1,9 @@
+import mediapipe as mp
+
 class Player:
-    #jogador 1 é o player da esquerda, player 2 é o jogador a direita.
-    left : bool
-    right : bool
+    pose :  mp.solutions.pose
 
     #construtor
-    def __init__(self, left, right):
-        self.left = left
-        self.right = right
+    def __init__(self, pose):
+        self.pose = pose
+        
