@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
 import mediapipe as mp
+import threading
+import queue
+import pyautogui
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
@@ -16,87 +19,72 @@ def draw_landmarks_on_image(rgb_image, landmarks):
     return annotated_image
 
 def detect_left_punch(landmarks):
-    try:
-        wrist_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST].y
-        elbow_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW].y
-        return wrist_y < elbow_y
-    except Exception as e:
-        print(f"Erro detectado em: Left punch: {e}")
-    return False
+    wrist_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST].y
+    elbow_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW].y
+    return wrist_y < elbow_y
 
 def detect_right_punch(landmarks):
-    try:
-        wrist_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST].y
-        elbow_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW].y
-        return wrist_y < elbow_y
-    except Exception as e:
-        print(f"Erro detectado em: Right punch: {e}")
-    return False
+    wrist_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST].y
+    elbow_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW].y
+    return wrist_y < elbow_y
 
 def detect_left_kick(landmarks):
-    try:
-        knee_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_KNEE].y
-        hip_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y
-        return knee_y < hip_y
-    except Exception as e:
-        print(f"Erro detectado em: Left kick: {e}")
-    return False
+    knee_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_KNEE].y
+    hip_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y
+    return knee_y < hip_y
 
 def detect_jump(landmarks):
-    try:
-        left_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ANKLE].y
-        right_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE].y
-        hip_y = (landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y +
-                 landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP].y) / 2
-        return left_ankle_y < hip_y and right_ankle_y < hip_y
-    except Exception as e:
-        print(f"Erro detectado em: Jump: {e}")
-    return False
+    left_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ANKLE].y
+    right_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE].y
+    hip_y = (landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y + landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP].y) / 2
+    return left_ankle_y < hip_y and right_ankle_y < hip_y
 
-def handle_detection_results(frame, results):
-    try:
-        if results.pose_landmarks:
-            annotated_image = draw_landmarks_on_image(frame, results.pose_landmarks)
-            if detect_left_punch(results.pose_landmarks):
-                print("Soco esquerdo detectado!")
-            if detect_right_punch(results.pose_landmarks):
-                print("Soco direito detectado!")
-            if detect_left_kick(results.pose_landmarks):
-                print("Chute esquerdo detectado!")
-            if detect_jump(results.pose_landmarks):
-                print("Pulo detectado!")
-            cv2.imshow('Projeto Street Fighter EX2', annotated_image)
-            cv2.waitKey(2)
-    except Exception as e:
-        print(f"Erro: {e}")
+def process_frame(frame, pose, results_queue, player_label):
+    results = pose.process(frame)
+    if results.pose_landmarks:
+        annotated_image = draw_landmarks_on_image(frame, results.pose_landmarks)
+        detections = []
+        if detect_left_punch(results.pose_landmarks):
+            detections.append("Left punch detected")
+            pyautogui.press('space' if player_label == "Jogador 1" else 'q')
+        if detect_right_punch(results.pose_landmarks):
+            detections.append("Right punch detected")
+            pyautogui.press('ctrl' if player_label == "Jogador 1" else 'a')
+        if detect_left_kick(results.pose_landmarks):
+            detections.append("Left kick detected")
+            pyautogui.press('shift' if player_label == "Jogador 1" else 'w')
+        if detect_jump(results.pose_landmarks):
+            detections.append("Jump detected")
+            pyautogui.press('up' if player_label == "Jogador 1" else 'r')
+        results_queue.put((annotated_image, detections, player_label))
 
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
-
+pose1 = mp_pose.Pose(min_detection_confidence=0.5)
+pose2 = mp_pose.Pose(min_detection_confidence=0.5)
 screen_size = [1600, 1000]
+results_queue = queue.Queue()
 
 try:
-    with mp_pose.Pose(static_image_mode=False, model_complexity=2, enable_segmentation=False, min_detection_confidence=0.5) as pose:
-        while cap.isOpened():
-            ret, frame = cap.read()
+    while cap.isOpened():
+        ret, frame = cap.read()
 
-            frame = cv2.resize(frame, (screen_size[0] - 40, screen_size[1] - 120))
+        frame = cv2.resize(frame, (screen_size[0] - 40, screen_size[1] - 120))
+        left_frame = frame[:, :screen_size[0]//2]
+        right_frame = frame[:, screen_size[0]//2:]
 
-            cv2.line(frame, (screen_size[0] // 2, 0), (screen_size[0] // 2, screen_size[1]), (0, 0, 255), 5)
-            cv2.putText(frame, "Jogador 1", (screen_size[0] // 4, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Jogador 2", (3 * screen_size[0] // 4, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+        threading.Thread(target=process_frame, args=(left_frame, pose1, results_queue, "Jogador 1")).start()
+        threading.Thread(target=process_frame, args=(right_frame, pose2, results_queue, "Jogador 2")).start()
 
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = pose.process(frame)
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            handle_detection_results(frame, results)
+        while not results_queue.empty():
+            annotated_image, detections, player_label = results_queue.get()
+            for detection in detections:
+                print(f"{player_label}: {detection}")
+            cv2.imshow(f'Projeto Street Fighter EX2 - {player_label}', annotated_image)
 
-            if cv2.waitKey(5) & 0xFF == ord('-'):
-                break
-            
-except Exception as e:
-    print(f"Erro: {e}")
+        if cv2.waitKey(5) & 0xFF == 27: 
+            break
 finally:
     cap.release()
     cv2.destroyAllWindows()
