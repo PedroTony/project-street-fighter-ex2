@@ -31,16 +31,24 @@
 - Opencv-Python (opencv4);
 - Matplotlib;
 - Numpy;
-- Mediapipe.
+- Mediapipe;
+- PyautoGUI.
 
 # Como executar
-Importe as libraries:
-```bash
-pip install opencv-python
-pip install numpy
-pip install matplotlib
-pip install mediapipe
+Para ser executado com uma venv Pyton 3.8.x
+Rode o comando:
+```
+pip install -r ./requirements.txt
 ```
 
-Rode o ```main.py``` com o Street Fighter EX2 aberto, para parar a execução do programa segure **CTRL + X**.
 
+Rode o ```main.py``` com o Street Fighter EX2 aberto, para parar a execução do programa pressione o botão ```-``` (menos).
+
+## Bibliografia
+Algumas partes do código foram adicionadas com base no projeto 'mediapipe_multiple_person.py' do usuário 'lanzani'.
+
+Link do repositório:
+> https://gist.github.com/lanzani/f85175d8fbdafcabb7d480dd1bb769d9
+
+Link do usuário:
+> https://github.com/lanzani

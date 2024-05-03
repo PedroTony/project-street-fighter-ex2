@@ -1,0 +1,25 @@
+site do jogo:
+    https://archive.org/details/arcade_sfex2
+
+comandos jogo:
+    para iniciar o jogo:
+        - inserir moeda: 5 e 6
+        - "1" para player 1
+        - "2" para player 2
+        - "p" para pausar o jogo
+
+    player 01:
+        - setinhas do teclado para andar, pular, abaixar
+        - "ctrl" para soco 1
+        - "alt" para soco 2
+        - "shift" para chute baixo
+        - "z" para chute 1
+        - "x" para chute 2
+
+    player 02:
+        - "r, g, f, d" para andar, pular, abaixar
+        - "a" para soco 1
+        - "q" para soco 2
+        - "s" para soco baixo
+        - "w" para chute 1
+        - "e" para chute 2
