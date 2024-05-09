@@ -4,6 +4,19 @@ import mediapipe as mp
 import threading
 import queue
 import pyautogui
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+
+# driver = webdriver.Edge();
+
+# url = "https://archive.org/details/arcade_sfex2#"
+# driver.get(url)
+# driver.maximize_window()
+
+
+# botaoLigar = driver.find_element(By.CLASS_NAME,"ghost")
+# botaoLigar.click()
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
@@ -33,6 +46,11 @@ def detect_left_kick(landmarks):
     hip_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y
     return knee_y < hip_y
 
+def detect_right_kick(landmarks):
+    knee_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_KNEE].y
+    hip_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP].y
+    return knee_y < hip_y
+
 def detect_jump(landmarks):
     left_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ANKLE].y
     right_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE].y
@@ -40,6 +58,7 @@ def detect_jump(landmarks):
     return left_ankle_y < hip_y and right_ankle_y < hip_y
 
 def process_frame(frame, pose, results_queue, player_label):
+    
     results = pose.process(frame)
     if results.pose_landmarks:
         annotated_image = draw_landmarks_on_image(frame, results.pose_landmarks)
@@ -52,7 +71,10 @@ def process_frame(frame, pose, results_queue, player_label):
             pyautogui.press('ctrl' if player_label == "Jogador 1" else 'a')
         if detect_left_kick(results.pose_landmarks):
             detections.append("Left kick detected")
-            pyautogui.press('shift' if player_label == "Jogador 1" else 'w')
+            pyautogui.press('z' if player_label == "Jogador 1" else 'w')
+        if detect_right_kick(results.pose_landmarks):
+            detections.append("Right Kick detected")
+            pyautogui.press('x' if player_label == "Jogador 1" else 'e')
         if detect_jump(results.pose_landmarks):
             detections.append("Jump detected")
             pyautogui.press('up' if player_label == "Jogador 1" else 'r')
