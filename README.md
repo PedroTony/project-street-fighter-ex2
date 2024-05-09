@@ -32,7 +32,7 @@
 - Matplotlib;
 - Numpy;
 - Mediapipe;
-- Pyinput.
+- PyautoGUI.
 
 # Como executar
 Para ser executado com uma venv Pyton 3.8.x
@@ -44,3 +44,11 @@ pip install -r ./requirements.txt
 
 Rode o ```main.py``` com o Street Fighter EX2 aberto, para parar a execução do programa pressione o botão ```-``` (menos).
 
+## Bibliografia
+Algumas partes do código foram adicionadas com base no projeto 'mediapipe_multiple_person.py' do usuário 'lanzani'.
+
+Link do repositório:
+> https://gist.github.com/lanzani/f85175d8fbdafcabb7d480dd1bb769d9
+
+Link do usuário:
+> https://github.com/lanzani

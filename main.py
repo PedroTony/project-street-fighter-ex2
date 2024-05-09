@@ -1,82 +1,90 @@
 import numpy as np
 import cv2
-import threading as thr
 import mediapipe as mp
-from matplotlib import pyplot as plt
-from classes.Player import Player
-import ctypes
+import threading
+import queue
+import pyautogui
 
-u32 = ctypes.windll.user32
-screen_size = u32.GetSystemMetrics(0), u32.GetSystemMetrics(1)
-
-print(screen_size)
-
-player1 = Player(True, False)
-player2 = Player(False, True)
-
+mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
-mp_holistic = mp.solutions.holistic
+mp_drawing_styles = mp.solutions.drawing_styles
 
-def detect_punch(hand_landmarks):
+def draw_landmarks_on_image(rgb_image, landmarks):
+    annotated_image = np.copy(rgb_image)
+    mp_drawing.draw_landmarks(
+        annotated_image,
+        landmarks,
+        mp_pose.POSE_CONNECTIONS,
+        mp_drawing_styles.get_default_pose_landmarks_style())
+    return annotated_image
 
-    if hand_landmarks:
-        thumb_tip = hand_landmarks.landmark[mp_holistic.HandLandmark.THUMB_TIP]
-        index_finger_tip = hand_landmarks.landmark[mp_holistic.HandLandmark.INDEX_FINGER_TIP]
-        distance = abs(thumb_tip.x - index_finger_tip.x) + abs(thumb_tip.y - index_finger_tip.y)
+def detect_left_punch(landmarks):
+    wrist_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST].y
+    elbow_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW].y
+    return wrist_y < elbow_y
 
-        if distance > 0.1:
-            return True
-    return False
+def detect_right_punch(landmarks):
+    wrist_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_WRIST].y
+    elbow_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ELBOW].y
+    return wrist_y < elbow_y
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, screen_size[0])
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, screen_size[1])
+def detect_left_kick(landmarks):
+    knee_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_KNEE].y
+    hip_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y
+    return knee_y < hip_y
 
-with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-    
+def detect_jump(landmarks):
+    left_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ANKLE].y
+    right_ankle_y = landmarks.landmark[mp_pose.PoseLandmark.RIGHT_ANKLE].y
+    hip_y = (landmarks.landmark[mp_pose.PoseLandmark.LEFT_HIP].y + landmarks.landmark[mp_pose.PoseLandmark.RIGHT_HIP].y) / 2
+    return left_ankle_y < hip_y and right_ankle_y < hip_y
+
+def process_frame(frame, pose, results_queue, player_label):
+    results = pose.process(frame)
+    if results.pose_landmarks:
+        annotated_image = draw_landmarks_on_image(frame, results.pose_landmarks)
+        detections = []
+        if detect_left_punch(results.pose_landmarks):
+            detections.append("Left punch detected")
+            pyautogui.press('space' if player_label == "Jogador 1" else 'q')
+        if detect_right_punch(results.pose_landmarks):
+            detections.append("Right punch detected")
+            pyautogui.press('ctrl' if player_label == "Jogador 1" else 'a')
+        if detect_left_kick(results.pose_landmarks):
+            detections.append("Left kick detected")
+            pyautogui.press('shift' if player_label == "Jogador 1" else 'w')
+        if detect_jump(results.pose_landmarks):
+            detections.append("Jump detected")
+            pyautogui.press('up' if player_label == "Jogador 1" else 'r')
+        results_queue.put((annotated_image, detections, player_label))
+
+cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1440)
+pose1 = mp_pose.Pose(min_detection_confidence=0.5)
+pose2 = mp_pose.Pose(min_detection_confidence=0.5)
+screen_size = [1600, 1000]
+results_queue = queue.Queue()
+
+try:
     while cap.isOpened():
         ret, frame = cap.read()
+
         frame = cv2.resize(frame, (screen_size[0] - 40, screen_size[1] - 120))
+        left_frame = frame[:, :screen_size[0]//2]
+        right_frame = frame[:, screen_size[0]//2:]
 
-        cv2.line(frame, (screen_size[0] // 2, 0), (screen_size[0] // 2, screen_size[1]), (0, 0, 255), 5)
-        cv2.putText(frame, "Jogador 1", (screen_size[0] // 4, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-        cv2.putText(frame, "Jogador 2", (3 * screen_size[0] // 4, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-        
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = holistic.process(image)
-        # print(results.face_landmarks)
+        threading.Thread(target=process_frame, args=(left_frame, pose1, results_queue, "Jogador 1")).start()
+        threading.Thread(target=process_frame, args=(right_frame, pose2, results_queue, "Jogador 2")).start()
 
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        while not results_queue.empty():
+            annotated_image, detections, player_label = results_queue.get()
+            for detection in detections:
+                print(f"{player_label}: {detection}")
+            cv2.imshow(f'Projeto Street Fighter EX2 - {player_label}', annotated_image)
 
-        # mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_TESSELATION,
-        #                          mp_drawing.DrawingSpec(color=(80,110,10), thickness=1, circle_radius=1),
-        #                          mp_drawing.DrawingSpec(color=(80,256,121), thickness=1, circle_radius=1)
-        #                          )
-        
-        mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS, 
-                                 mp_drawing.DrawingSpec(color=(80,22,10), thickness=2, circle_radius=4),
-                                 mp_drawing.DrawingSpec(color=(80,44,121), thickness=2, circle_radius=2)
-                                 )
-
-
-        mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS, 
-                                 mp_drawing.DrawingSpec(color=(121,22,76), thickness=2, circle_radius=4),
-                                 mp_drawing.DrawingSpec(color=(121,44,250), thickness=2, circle_radius=2)
-                                 )
-
-
-        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS, 
-                                 mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=4),
-                                 mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
-                                 )
-        
-        if detect_punch(results.right_hand_landmarks):
-            print("Soco detectado")
-
-        cv2.imshow('Projeto Street Fighter Ex2', image)
-
-        if cv2.waitKey(10) & 0xFF == ord('-'):
+        if cv2.waitKey(5) & 0xFF == 27: 
             break
-
-cap.release()
-cv2.destroyAllWindows()
+finally:
+    cap.release()
+    cv2.destroyAllWindows()
