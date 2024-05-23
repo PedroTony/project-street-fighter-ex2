@@ -136,31 +136,32 @@ def process_frame(frame, pose, results_queue, player_label):
                 screen_flip_p2 = False
             movement_detected = True
             
-        if player_label == "Jogador 1":
-            if screen_flip_p1:
-                pyautogui.keyDown('down')
-                pyautogui.keyDown('left')
-                pyautogui.keyUp('down')
-                pyautogui.keyUp('left')
+        if detect_special(results.pose_landmarks):
+            if player_label == "Jogador 1":
+                if screen_flip_p1:
+                    pyautogui.keyDown('down')
+                    pyautogui.keyDown('left')
+                    pyautogui.keyUp('down')
+                    pyautogui.keyUp('left')
+                else:
+                    pyautogui.keyDown('down')
+                    pyautogui.keyDown('right')
+                    pyautogui.keyUp('down')
+                    pyautogui.keyUp('right')
+                pyautogui.press('space')
             else:
-                pyautogui.keyDown('down')
-                pyautogui.keyDown('right')
-                pyautogui.keyUp('down')
-                pyautogui.keyUp('right')
-            pyautogui.press('space')
-        else:
-            if screen_flip_p2:
-                pyautogui.keyDown('g')
-                pyautogui.keyDown('f')
-                pyautogui.keyUp('g')
-                pyautogui.keyUp('f')
-            else:
-                pyautogui.keyDown('f')
-                pyautogui.keyDown('d')
-                pyautogui.keyUp('f')
-                pyautogui.keyUp('d')
-            pyautogui.press('w')
-        movement_detected = True
+                if screen_flip_p2:
+                    pyautogui.keyDown('g')
+                    pyautogui.keyDown('f')
+                    pyautogui.keyUp('g')
+                    pyautogui.keyUp('f')
+                else:
+                    pyautogui.keyDown('f')
+                    pyautogui.keyDown('d')
+                    pyautogui.keyUp('f')
+                    pyautogui.keyUp('d')
+                pyautogui.press('w')
+            movement_detected = True
             
         if not movement_detected:
             detections.append("Nenhuma ação realizada")
