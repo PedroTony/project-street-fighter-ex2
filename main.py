@@ -10,7 +10,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 
-
 driver = webdriver.Edge();
 
 url = "https://archive.org/details/arcade_sfex2#"
@@ -68,9 +67,19 @@ def detect_flip(landmarks):
     
     return left_wrist_x < right_elbow_x and right_wrist_x > left_elbow_x
 
-def detect_special(landmarks):
+def detect_defense(landmarks):
+    return detect_left_punch(landmarks) and detect_right_punch(landmarks)
 
-    return 
+def detect_special(landmarks):
+    left_wrist = landmarks.landmark[mp_pose.PoseLandmark.LEFT_WRIST]
+    left_elbow = landmarks.landmark[mp_pose.PoseLandmark.LEFT_ELBOW]
+    left_shoulder = landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER]
+
+    threshold = 0.1
+    is_straight_y = abs(left_wrist.y - left_elbow.y) < threshold and abs(left_elbow.y - left_shoulder.y) < threshold
+    is_straight_x = abs(left_wrist.x - left_elbow.x) < threshold and abs(left_elbow.x - left_shoulder.x) < threshold
+
+    return is_straight_y and is_straight_x
 
 screen_flip_p1 = False
 screen_flip_p2 = False
@@ -85,15 +94,25 @@ def process_frame(frame, pose, results_queue, player_label):
 
     if results.pose_landmarks:
         annotated_image = draw_landmarks_on_image(frame, results.pose_landmarks)
-        if detect_left_punch(results.pose_landmarks):
-            detections.append("Soco esquerdo detectado")
-            pyautogui.press('space' if player_label == "Jogador 1" else 'q')
+
+        if detect_defense(results.pose_landmarks):
+            detections.append("Defesa detectada")
+            if not screen_flip_p1 :
+                pyautogui.press('left' if player_label == "Jogador 1" else 'g')
+            else:
+                pyautogui.press('right' if player_label == "Jogador 1" else 'd')
             movement_detected = True
-            
-        if detect_right_punch(results.pose_landmarks):
-            detections.append("Soco direito detectado")
-            pyautogui.press('ctrl' if player_label == "Jogador 1" else 'a')
-            movement_detected = True
+        
+        else:
+            if detect_left_punch(results.pose_landmarks):
+                detections.append("Soco esquerdo detectado")
+                pyautogui.press('space' if player_label == "Jogador 1" else 'q')
+                movement_detected = True
+                
+            if detect_right_punch(results.pose_landmarks):
+                detections.append("Soco direito detectado")
+                pyautogui.press('ctrl' if player_label == "Jogador 1" else 'a')
+                movement_detected = True
             
         if detect_left_kick(results.pose_landmarks):
             detections.append("Chute esquerdo detectado")
@@ -117,16 +136,38 @@ def process_frame(frame, pose, results_queue, player_label):
                 screen_flip_p2 = False
             movement_detected = True
             
-        if detect_special(results.pose_landmarks):
-            detections.append("Habilidade especial detectada")
-            movement_detected = True
+        if player_label == "Jogador 1":
+            if screen_flip_p1:
+                pyautogui.keyDown('down')
+                pyautogui.keyDown('left')
+                pyautogui.keyUp('down')
+                pyautogui.keyUp('left')
+            else:
+                pyautogui.keyDown('down')
+                pyautogui.keyDown('right')
+                pyautogui.keyUp('down')
+                pyautogui.keyUp('right')
+            pyautogui.press('space')
+        else:
+            if screen_flip_p2:
+                pyautogui.keyDown('g')
+                pyautogui.keyDown('f')
+                pyautogui.keyUp('g')
+                pyautogui.keyUp('f')
+            else:
+                pyautogui.keyDown('f')
+                pyautogui.keyDown('d')
+                pyautogui.keyUp('f')
+                pyautogui.keyUp('d')
+            pyautogui.press('w')
+        movement_detected = True
             
         if not movement_detected:
             detections.append("Nenhuma ação realizada")
             if player_label == "Jogador 1" and not screen_flip_p1:
-                pyautogui.press('left')
-            elif player_label == "Jogador 1" and screen_flip_p1:
                 pyautogui.press('right')
+            elif player_label == "Jogador 1" and screen_flip_p1:
+                pyautogui.press('left')
             if player_label == "Jogador 2" and not screen_flip_p2:
                 pyautogui.press('d')
             elif player_label == "Jogador 2" and screen_flip_p2:
